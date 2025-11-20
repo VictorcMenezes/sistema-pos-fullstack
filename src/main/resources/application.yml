@@ -3,15 +3,22 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/pos_db
+    url: jdbc:postgresql://localhost:5432/pos_db
     username: pos_user
     password: pos_pass
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update # Em dev pode usar update
+      ddl-auto: update 
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+
+security:
+  jwt:
+    secret: Ce3GiAGEkzN4HAFK2StNSwDcLHU3FKYzCQtNgk3F5Bw=
+    access-ttl-seconds: 900 
+    refresh-ttl-seconds: 1209600

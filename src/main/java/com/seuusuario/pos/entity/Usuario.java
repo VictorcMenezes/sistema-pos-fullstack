@@ -13,6 +13,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuarios")
@@ -43,5 +45,9 @@ public class Usuario {
     private Boolean ativo = true; // permiter desativar usuario sem deletar
     
     @Column(nullable = false)
-    private Instant criandoEm = Instant.now();// define automaticamente data e hora atual
+    @CreationTimestamp //O Hibernate garante que o valor seja preenchido antes de persistir
+    private Instant criandoEm; 
+
+    
+    
 }
