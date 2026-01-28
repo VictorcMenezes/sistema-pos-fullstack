@@ -9,16 +9,19 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update 
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  # Adicione o flyway aqui para garantir que ele rode
+  flyway:
+    enabled: true
 
-
+# Esta parte deve estar no início da linha, sem espaços atrás
 security:
   jwt:
-    secret: Ce3GiAGEkzN4HAFK2StNSwDcLHU3FKYzCQtNgk3F5Bw=
-    access-ttl-seconds: 900 
+    secret: "Ce3GiAGEkzN4HAFK2StNSwDcLHU3FKYzCQtNgk3F5Bw="
+    access-ttl-seconds: 900
     refresh-ttl-seconds: 1209600
