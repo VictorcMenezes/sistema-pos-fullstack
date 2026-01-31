@@ -24,41 +24,37 @@ public class EstoqueService {
     private final ProdutoRepository produtoRepo;
 
     @Transactional
-    public void movimentar(MovimentacaoEstoqueRequest req) {
-       
-        Produto produto = produtoRepo.findById(req.produtoId())
-            .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado"));
+public void movimentar(MovimentacaoEstoqueRequest req) {
+    Produto produto = produtoRepo.findById(req.produtoId())
+        .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado"));
 
-        
-        Estoque estoque = estoqueRepo.findByProdutoId(produto.getId())
-            .orElseGet(() -> Estoque.builder()
-                    .produto(produto)
-                    .quantidade(0)
-                    .estoqueMinimo(0)
-                    .build()
-            );
+    Estoque estoque = estoqueRepo.findByProdutoId(produto.getId())
+        .orElseGet(() -> Estoque.builder()
+                .produto(produto)
+                .quantidade(0)
+                .estoqueMinimo(0)
+                .build()
+        );
 
-        
-        int atual = estoque.getQuantidade();
-        int novoSaldo = atual;
+    int atual = estoque.getQuantidade();
+    int novoSaldo = atual;
 
-        if (req.tipo() == TipoMovimentacao.ENTRADA) {
-            novoSaldo = atual + req.quantidade();
-        } else if (req.tipo() == TipoMovimentacao.SAIDA) {
-            if (atual < req.quantidade()) {
-                throw new IllegalArgumentException("Estoque insuficiente");
-            }
-            novoSaldo = atual - req.quantidade();
-        } else if (req.tipo() == TipoMovimentacao.AJUSTE) {
-            novoSaldo = req.quantidade();
+    // Use sempre o "req" que é o nome do parâmetro do método
+    if (req.tipo() == TipoMovimentacao.ENTRADA) {
+        novoSaldo = atual + req.quantidade();
+    } else if (req.tipo() == TipoMovimentacao.SAIDA) {
+        if (atual < req.quantidade()) {
+            throw new IllegalArgumentException("Estoque insuficiente para o produto: " + produto.getNome());
         }
+        novoSaldo = atual - req.quantidade();
+    } else if (req.tipo() == TipoMovimentacao.AJUSTE) {
+        novoSaldo = req.quantidade();
+    }
 
-        
-        estoque.setQuantidade(novoSaldo);
-        estoqueRepo.save(estoque);
+    estoque.setQuantidade(novoSaldo);
+    estoqueRepo.save(estoque);
 
-        
-        MovimentacaoEstoque mov = MovimentacaoEstoque.builder()
+    MovimentacaoEstoque mov = MovimentacaoEstoque.builder()
         .produto(produto)
         .tipo(req.tipo())
         .quantidade(req.quantidade())
@@ -66,9 +62,8 @@ public class EstoqueService {
         .dataMovimentacao(Instant.now())
         .build();
                 
-        movRepo.save(mov);
-    }
-
+    movRepo.save(mov);
+}
     public List<MovimentacaoEstoque> historico(Long produtoId) {
         return movRepo.findByProdutoIdOrderByDataMovimentacaoDesc(produtoId);
     }

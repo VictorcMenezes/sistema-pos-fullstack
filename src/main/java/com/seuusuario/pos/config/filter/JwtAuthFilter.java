@@ -2,6 +2,7 @@ package com.seuusuario.pos.config.filter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -48,20 +49,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Token inválido ou expirado
         }
 
+        
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            List<SimpleGrantedAuthority> authorities = jwt.extractAuthorities(token); 
             
-            
-            System.out.println("Autoridades extraídas: " + authorities);
+            List<SimpleGrantedAuthority> authorities = jwt.extractAuthorities(token)
+                .stream()
+                .map(auth -> {
+                    String role = auth.getAuthority();
+                    return new SimpleGrantedAuthority(role.startsWith("ROLE_") ? role : "ROLE_" + role);
+                })
+                .collect(Collectors.toList());
+
+            System.out.println("Autoridades normalizadas: " + authorities);
 
             UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(username, null, authorities);
-                
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
-        
+                
         chain.doFilter(request, response);
     }
 }

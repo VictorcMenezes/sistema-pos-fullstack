@@ -52,27 +52,19 @@ public class SecurityConfig {
     
 
     @Bean
-public SecurityFilterChain securityFilterChain(
-    HttpSecurity http,
-    AuthenticationProvider authProvider 
-) throws Exception { 
-    http
-        
-        .csrf(csrf -> csrf.disable())    
-        
-        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))       
-        
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception { 
+        http
+            .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/api/v1/auth/**").permitAll()
-        .anyRequest().authenticated() 
-    )
+            .requestMatchers("/api/v1/auth/**").permitAll()
+            .requestMatchers("/error").permitAll()
+            .requestMatchers("/api/v1/caixas/**").hasRole("ADMIN")
+            .requestMatchers("/api/v1/vendas/**").hasAnyRole("ADMIN", "USER") 
+            .anyRequest().authenticated()
+            )
         
-        
-        .authenticationProvider(authProvider)
-        
-        
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        
-    return http.build();
-}
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            
+        return http.build();
+    }
 }
