@@ -34,14 +34,14 @@ public class CaixaController {
     private final CaixaService caixaService;
 
     @PostMapping("/abrir")
-    @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
+    //@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CaixaResponse> abrir(@Valid @RequestBody AbrirCaixaRequest req) {
         CaixaResponse resp = caixaService.abrirCaixa(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
     @PostMapping("/{id}/fechar")
-    @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
+    //@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CaixaResponse> fechar(
             @PathVariable Long id,
             @Valid @RequestBody FecharCaixaRequest req) {
@@ -50,7 +50,7 @@ public class CaixaController {
     }
 
     @GetMapping("/aberto/{usuarioId}")
-    @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
+    //@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CaixaResponse> caixaAberto(@PathVariable Long usuarioId) {
         return caixaService.buscarCaixaAbertoPorUsuario(usuarioId)
                 .map(ResponseEntity::ok)

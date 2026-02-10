@@ -53,21 +53,29 @@ public class AuthController {
     }
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest req) {
-    var authToken = new UsernamePasswordAuthenticationToken(req.email(), req.senha());
-    authenticationManager.authenticate(authToken);
+        var authToken = new UsernamePasswordAuthenticationToken(req.email(), req.senha());
+        authenticationManager.authenticate(authToken);
 
-    var user = repo.findByEmail(req.email()).orElseThrow();
-    
-    var userDetails = new org.springframework.security.core.userdetails.User(
-            user.getEmail(), 
-            user.getSenha(),
-            List.of(new SimpleGrantedAuthority(user.getRole())) // Apenas "ADMIN"
-    );
+        var user = repo.findByEmail(req.email()).orElseThrow();
+        
+        var userDetails = new org.springframework.security.core.userdetails.User(
+                user.getEmail(), 
+                user.getSenha(),
+                List.of(new SimpleGrantedAuthority(user.getRole()))
+        );
 
-    String access = jwtService.generateAccessToken(userDetails);
-    String refresh = jwtService.generateRefreshToken(userDetails);
-    return ResponseEntity.ok(new AuthResponse(access, refresh));
-}
+        String access = jwtService.generateAccessToken(userDetails);
+        String refresh = jwtService.generateRefreshToken(userDetails);
+
+        
+        return ResponseEntity.ok(new AuthResponse(
+            access, 
+            refresh, 
+            user.getId(), 
+            user.getNome(), 
+            user.getRole()
+        ));
+    }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest req) {
@@ -78,6 +86,12 @@ public class AuthController {
                 List.of(new SimpleGrantedAuthority(user.getRole()))
         );
         String access = jwtService.generateAccessToken(userDetails);
-        return ResponseEntity.ok(new AuthResponse(access, req.refreshToken()));
+        return ResponseEntity.ok(new AuthResponse(
+            access, 
+            req.refreshToken(), 
+            user.getId(), 
+            user.getNome(), 
+            user.getRole()
+        ));
     }
 }

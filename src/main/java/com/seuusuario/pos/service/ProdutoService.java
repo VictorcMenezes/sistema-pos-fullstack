@@ -23,7 +23,7 @@ public class ProdutoService {
 
     public ProdutoDTO salvar(@Valid ProdutoDTO dto) {
 
-        //Veficar Unicidade do código de barras
+        
         if(produtoRepo.existsByCodigoBarras(dto.codigoBarras())){
             throw new IllegalArgumentException("O Código de Barras '" + dto.codigoBarras() + "' já está cadastrado.");
         }
@@ -48,13 +48,13 @@ public class ProdutoService {
                 p.getId(),
                 p.getNome(),
                 p.getCodigoBarras(),
-                p.getFornecedor().getId(),
+                (p.getFornecedor() != null) ? p.getFornecedor().getId() : null,
                 p.getPrecoCompra(),
                 p.getPrecoVenda(),
                 p.getAtivo()
         );
     }
-    //buscar produto por id
+    
     public ProdutoDTO buscarPorId(Long id){
         Produto produto = produtoRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado"));

@@ -15,3 +15,7 @@ CREATE TABLE movimentacoes_estoque (
     data_movimentacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_movimentacao_produto FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );
+
+--Garante que a tabela usurios exista antes ou que o Hibernate a crier
+INSERT INTO usuarios (ativo, criando_em, email, nome, role, senha, telefone) 
+VALUES (true, CURRENT_TIMESTAMP, 'admin@teste.com', 'Admin Victor', 'ROLE_ADMIN', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TVuHOnu', '11999999999');
