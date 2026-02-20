@@ -62,7 +62,6 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            // Importante: H2 Console exige que os frames sejam permitidos
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
            .authorizeHttpRequests(auth -> auth
@@ -74,6 +73,7 @@ public class SecurityConfig {
             .requestMatchers("/api/v1/vendas/**").permitAll()
             .requestMatchers("/api/v1/produtos/**").permitAll()
             .requestMatchers("/api/v1/fornecedores/**").permitAll()
+            .requestMatchers("/api/v1/estoque/**").permitAll()
             .anyRequest().authenticated()
         )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

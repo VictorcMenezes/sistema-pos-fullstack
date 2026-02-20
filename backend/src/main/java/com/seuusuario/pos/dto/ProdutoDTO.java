@@ -13,6 +13,7 @@ public record ProdutoDTO (
     @NotNull Long fornecedorId,
     @NotNull @DecimalMin("0.01") BigDecimal precoCompra,
     @NotNull @DecimalMin("0.01") BigDecimal precoVenda,
-    Boolean ativo
+    Boolean ativo,
+    Integer quantidadeInicial
 )
 {}

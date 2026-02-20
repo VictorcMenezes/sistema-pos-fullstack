@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -31,7 +31,15 @@ const drawerWidth = 240;
 export default function Dashboard() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState('pdv');
-  const { logout } = useAuth();
+  const [horaAtual, setHoraAtual] = useState(new Date());
+  const { logout, user } = useAuth();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHoraAtual(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -122,8 +130,14 @@ export default function Dashboard() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Sistema POS - {abaAtiva.toUpperCase()}
+          </Typography>
+          <Typography variant="body2" sx={{ mr: 2 }}>
+            {user?.nome}
+          </Typography>
+          <Typography variant="body2">
+            {horaAtual.toLocaleTimeString('pt-BR')}
           </Typography>
         </Toolbar>
       </AppBar>

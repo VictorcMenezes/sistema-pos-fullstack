@@ -14,13 +14,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.Collection;
+import java.util.List;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuarios")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
-public class Usuario {
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,15 +48,39 @@ public class Usuario {
     private String senha;
 
     @Column(nullable = false, length = 20)
-    private String role; // admin , funcionario
+    private String role;
 
     @Column(nullable = false)
-    private Boolean ativo = true; // permiter desativar usuario sem deletar
+    private Boolean ativo = true;
     
     @Column(nullable = false)
-    @CreationTimestamp //O Hibernate garante que o valor seja preenchido antes de persistir
+    @CreationTimestamp 
     private Instant criandoEm; 
 
-    
-    
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role));
+    }
+
+    @Override
+    public String getPassword() { return this.senha; }
+
+    @Override
+    public String getUsername() { return this.email; }
+
+    @Override
+    public boolean isAccountNonExpired() { return true; }
+
+    @Override
+    public boolean isAccountNonLocked() { return true; }
+
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+
+    @Override
+    public boolean isEnabled() { return this.ativo; }
 }
+
+    
+    
+

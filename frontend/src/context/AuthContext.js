@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import { authService } from '../services/authService';
 
 const AuthContext = createContext();
@@ -7,49 +8,50 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const processToken = (token) => {
+    try {
+      const decoded = jwtDecode(token);
+      console.log("Conteúdo do Token decodificado:", decoded);
+
+      return {
+        id: decoded.userId || decoded.id || decoded.sub, // Tenta várias chaves comuns
+        nome: decoded.nome || "Usuário",
+        email: decoded.email || decoded.sub,
+        role: decoded.role,
+        authenticated: true
+      };
+    } catch (err) {
+      console.error('Erro ao decodificar token:', err);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('accessToken');
-    
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('user');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    if (token) {
+      const userData = processToken(token);
+      if (userData) {
+        setUser(userData);
+      } else {
+        localStorage.clear();
       }
     }
     setLoading(false);
   }, []);
 
-  const login = async (email, senha) => {
-  try {
-    const response = await authService.login(email, senha);
-    
-    // Verifique se response e response.id existem
-    if (response && response.id) {
-      const userData = {
-        id: response.id, 
-        nome: response.nome,
-        role: response.role,
-        authenticated: true
-      };
-      
+  const login = (token) => {
+    const userData = processToken(token);
+    if (userData) {
       setUser(userData);
+      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('user', JSON.stringify(userData));
-      return response;
-    } else {
-      throw new Error("Dados do usuário não retornados pelo servidor");
     }
-  } catch (error) {
-    console.error("Erro no login:", error);
-    throw error; 
-  }
-};
+  };
 
   const logout = () => {
     authService.logout();
-    localStorage.removeItem('user'); 
-    localStorage.removeItem('accessToken');
+    localStorage.clear();
     setUser(null);
   };
 

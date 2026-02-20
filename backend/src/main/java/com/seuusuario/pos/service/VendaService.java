@@ -92,6 +92,10 @@ public class VendaService {
 
         Venda salva = vendaRepo.save(venda);
 
+        BigDecimal novoSaldo = caixa.getSaldoAtual().add(salva.getValorFinal());
+        caixa.setSaldoAtual(novoSaldo);
+        caixaRepo.save(caixa); // Atualiza o saldo na tabela CAIXAS
+
         return new VendaResponse(
             salva.getId(),
             salva.getNumeroVenda(),

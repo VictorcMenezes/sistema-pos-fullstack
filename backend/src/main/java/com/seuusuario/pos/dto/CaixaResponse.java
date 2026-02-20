@@ -7,6 +7,7 @@ public record CaixaResponse(
     Long id,
     Long usuarioId,
     BigDecimal valorAbertura,
+    BigDecimal saldoAtual,
     BigDecimal valorFechamento,
     String status,
     Instant dataAbertura,

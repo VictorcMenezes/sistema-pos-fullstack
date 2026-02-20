@@ -19,12 +19,8 @@ public class JpaUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var u = repo.findByEmail(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + u.getRole()));
-        return new org.springframework.security.core.userdetails.User(
-            u.getEmail(), u.getSenha(), u.getAtivo(), true, true, true, authorities
-        );
+        
+        return repo.findByEmail(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }
-

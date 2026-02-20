@@ -19,6 +19,9 @@ public class Caixa {
     @Column(nullable = false)
     private BigDecimal valorAbertura;
 
+    @Column(nullable = false)
+    private BigDecimal saldoAtual;
+
     private BigDecimal valorFechamento;
 
     @Column(nullable = false)

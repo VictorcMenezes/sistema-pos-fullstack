@@ -39,7 +39,6 @@ public void movimentar(MovimentacaoEstoqueRequest req) {
     int atual = estoque.getQuantidade();
     int novoSaldo = atual;
 
-    // Use sempre o "req" que é o nome do parâmetro do método
     if (req.tipo() == TipoMovimentacao.ENTRADA) {
         novoSaldo = atual + req.quantidade();
     } else if (req.tipo() == TipoMovimentacao.SAIDA) {

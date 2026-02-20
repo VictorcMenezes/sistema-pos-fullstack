@@ -10,6 +10,8 @@ import com.seuusuario.pos.entity.Fornecedor;
 import com.seuusuario.pos.entity.Produto;
 import com.seuusuario.pos.repository.FornecedorRepository;
 import com.seuusuario.pos.repository.ProdutoRepository;
+import com.seuusuario.pos.entity.Estoque;
+import com.seuusuario.pos.repository.EstoqueRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -20,10 +22,9 @@ import lombok.RequiredArgsConstructor;
 public class ProdutoService {
     private final ProdutoRepository produtoRepo;
     private final FornecedorRepository fornecedorRepo;
+    private final EstoqueRepository estoqueRepo;
 
     public ProdutoDTO salvar(@Valid ProdutoDTO dto) {
-
-        
         if(produtoRepo.existsByCodigoBarras(dto.codigoBarras())){
             throw new IllegalArgumentException("O Código de Barras '" + dto.codigoBarras() + "' já está cadastrado.");
         }
@@ -39,11 +40,29 @@ public class ProdutoService {
                 .precoVenda(dto.precoVenda())
                 .ativo(dto.ativo() !=null ? dto.ativo() : true)
                 .build();
-        produtoRepo.save(p);
-        return toDTO(p);
+        
+        Produto produtoSalvo = produtoRepo.save(p);
+
+        Estoque novoEstoque = Estoque.builder()
+                .produto(produtoSalvo)
+                .quantidade(dto.quantidadeInicial() != null ? dto.quantidadeInicial() : 0)
+                .estoqueMinimo(5)
+                .build();
+        
+        estoqueRepo.save(novoEstoque);
+
+        return toDTO(produtoSalvo);
     }
 
     public ProdutoDTO toDTO(Produto p){
+
+        Integer quantidade = 0;
+        if (p.getId() != null) {
+            quantidade = estoqueRepo.findByProdutoId(p.getId())
+                .map(Estoque::getQuantidade)
+                .orElse(0);
+        }
+
         return new ProdutoDTO(
                 p.getId(),
                 p.getNome(),
@@ -51,7 +70,9 @@ public class ProdutoService {
                 (p.getFornecedor() != null) ? p.getFornecedor().getId() : null,
                 p.getPrecoCompra(),
                 p.getPrecoVenda(),
-                p.getAtivo()
+                p.getAtivo(),
+                quantidade
+                
         );
     }
     
@@ -61,18 +82,18 @@ public class ProdutoService {
             return toDTO(produto);
     }
 
-    //atualizar produto
+    
     public ProdutoDTO atualizar(Long id, @Valid ProdutoDTO dto){
-        //verifica se o produto existe
+        
         Produto produtoExistente = produtoRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado"));
-        //atualizar os campos
+       
         produtoExistente.setNome(dto.nome());
         produtoExistente.setPrecoVenda(dto.precoVenda());
         produtoExistente.setPrecoCompra(dto.precoCompra());
         produtoExistente.setAtivo(dto.ativo());
 
-        //validar fornecedor
+    
         if(dto.fornecedorId() != null){
             Fornecedor novoFornecedor = fornecedorRepo.findById(dto.fornecedorId())
                 .orElseThrow(() -> new EntityNotFoundException("Fornecedor não encontrado"));
@@ -84,9 +105,9 @@ public class ProdutoService {
         return toDTO(produtoAtualizado);
     }
 
-    //deletar produto
+    
     public void deletar(Long id){
-        //soft delete(desativar o produto)
+        
         Produto produto= produtoRepo.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado para exclusão com Id:" + id));
 

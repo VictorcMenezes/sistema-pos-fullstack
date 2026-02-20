@@ -23,17 +23,14 @@ public class CaixaService {
     private final CaixaRepository caixaRepo;
     private final UsuarioRepository usuarioRepo;
 
-    @Transactional
+   @Transactional
     public CaixaResponse abrirCaixa(AbrirCaixaRequest req) {
-        usuarioRepo.findById(req.usuarioId())
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
-
-        caixaRepo.findFirstByUsuarioIdAndStatusOrderByDataAberturaDesc(req.usuarioId(), "ABERTO")
-                .ifPresent(c -> { throw new IllegalStateException("Já existe um caixa aberto para este usuário"); });
+       
 
         Caixa caixa = Caixa.builder()
                 .usuario(usuarioRepo.getReferenceById(req.usuarioId()))
                 .valorAbertura(req.valorAbertura())
+                .saldoAtual(req.valorAbertura()) // INICIALIZA O SALDO COM O VALOR DE ABERTURA
                 .status("ABERTO")
                 .dataAbertura(Instant.now())
                 .build();
@@ -69,6 +66,7 @@ public class CaixaService {
                 c.getId(),
                 c.getUsuario().getId(),
                 c.getValorAbertura(),
+                c.getSaldoAtual(), // <--- PASSE O SALDO DA ENTIDADE PARA O DTO
                 c.getValorFechamento(),
                 c.getStatus(),
                 c.getDataAbertura(),

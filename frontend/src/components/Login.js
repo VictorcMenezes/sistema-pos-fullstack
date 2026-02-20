@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authService } from '../services/authService'; // Importe o serviço de autenticação
 import { Box, Button, TextField, Typography, Container, Alert } from '@mui/material';
 
 export default function Login() {
@@ -14,10 +15,21 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      await login(email, senha);
-      navigate('/');
+    
+      const response = await authService.login(email, senha);
+    
+      const token = response.accessToken || response.token || response;
+
+      if (token) {
+        
+        login(token); 
+        navigate('/');
+      } else {
+        setError('Erro ao receber dados de acesso');
+      }
     } catch (err) {
-      setError('Credenciais inválidas');
+      console.error("Erro no login:", err);
+      setError('Credenciais inválidas ou erro no servidor');
     }
   };
 

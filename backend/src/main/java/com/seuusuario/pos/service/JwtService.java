@@ -10,14 +10,21 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import com.seuusuario.pos.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.seuusuario.pos.entity.Usuario;
+
 @Service
 public class JwtService {
+
+    @Autowired
+    private UsuarioRepository usuarioRepo;
 
     @Value("${security.jwt.secret}") 
     private String secret;
@@ -58,16 +65,32 @@ public class JwtService {
                 .getBody();
     }
 
-    public String generateAccessToken(UserDetails user) {
-        return Jwts.builder()
-            .setSubject(user.getUsername())
-            .claim("roles", user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + accessTtl * 1000))
-            .signWith(key(), SignatureAlgorithm.HS256)
-            .compact();
-    }
+   public String generateAccessToken(UserDetails user) {
+        Long idFinal = null;
 
+       
+        if (user instanceof Usuario usuario) {
+            idFinal = usuario.getId();
+        } else {
+            idFinal = usuarioRepo.findByEmail(user.getUsername())
+                    .map(Usuario::getId)
+                    .orElse(null);
+        }
+
+        var builder = Jwts.builder()
+            .setSubject(user.getUsername())
+            .claim("roles", user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()))
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + accessTtl * 1000));
+
+        if (idFinal != null) {
+            builder.claim("userId", idFinal);
+        }
+
+        return builder.signWith(key(), SignatureAlgorithm.HS256).compact();
+    }
     public String generateRefreshToken(UserDetails user) {
         return Jwts.builder()
             .setSubject(user.getUsername())
