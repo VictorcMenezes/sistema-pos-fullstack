@@ -1,17 +1,19 @@
-  
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
   Box, Button, TextField, Typography, List, ListItem,
-  ListItemText, IconButton, Paper, Grid, MenuItem, Select, InputLabel, FormControl, Card, CardContent
+  ListItemText, IconButton, Paper, Grid, MenuItem, Select,
+  InputLabel, FormControl, Card, CardContent, Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useSnackbar } from '../hooks/useSnackbar';
 import { Snackbar, Alert } from '@mui/material';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function PDV() {
-  const { user } = useAuth(); // Pega dados do usuário logado
+  const { user } = useAuth();
   const [produtos, setProdutos] = useState([]);
   const [carrinho, setCarrinho] = useState([]);
   const [busca, setBusca] = useState('');
@@ -20,11 +22,15 @@ export default function PDV() {
   const [formaPagamento, setFormaPagamento] = useState('DINHEIRO');
   const [desconto, setDesconto] = useState(0);
   const { open, message, severity, showSnackbar, closeSnackbar } = useSnackbar();
+  const [ultimaVenda, setUltimaVenda] = useState(null);
+  const reciboRef = useRef(null);
 
   useEffect(() => {
     carregarProdutos();
-    verificarCaixaAberto();
-  }, []);
+    if (user?.id) {
+      verificarCaixaAberto();
+    }
+  }, [user]);
 
   const carregarProdutos = async () => {
     try {
@@ -37,7 +43,7 @@ export default function PDV() {
 
   const verificarCaixaAberto = async () => {
     try {
-      const { data } = await api.get(`/caixas/aberto/${user.id}`); // Usa ID do usuário
+      const { data } = await api.get(`/caixas/aberto/${user.id}`);
       setCaixaId(data.id);
     } catch (err) {
       console.warn('Nenhum caixa aberto.');
@@ -66,7 +72,7 @@ export default function PDV() {
       return;
     }
     setCarrinho(carrinho.map(i =>
-      i.produto.id === produtoId ? { ...i, quantidade: novaQtd } : i 
+      i.produto.id === produtoId ? { ...i, quantidade: novaQtd } : i
     ));
   };
 
@@ -74,22 +80,15 @@ export default function PDV() {
     setCarrinho(carrinho.filter(i => i.produto.id !== produtoId));
   };
 
-  const calcularSubtotal = () => {
-    return carrinho.reduce((acc, item) =>
-      acc + (item.produto.precoVenda * item.quantidade), 0
-    );
-  };
+  const subtotal = carrinho.reduce((acc, item) =>
+    acc + (item.produto.precoVenda * item.quantidade), 0
+  );
 
-  const calcularTotal = () => {
-    const subtotal = calcularSubtotal();
-    const desc = Number(desconto) || 0;
-    const total = subtotal - desc;
-    return total < 0 ? 0 : total;
-  };
+  const total = Math.max(0, subtotal - (Number(desconto) || 0));
 
-   const finalizarVenda = async () => {
+  const finalizarVenda = async () => {
     if (!caixaId) {
-      showSnackbar('Nenhum caixa aberto! Vá em "Caixa" e abra um caixa.', 'warning');
+      showSnackbar('Nenhum caixa aberto!', 'warning');
       return;
     }
     if (carrinho.length === 0) {
@@ -103,62 +102,116 @@ export default function PDV() {
     }));
 
     try {
-      await api.post('/vendas', {
+      const { data } = await api.post('/vendas', {
         caixaId,
         usuarioId: user.id,
         itens,
         formaPagamento,
         desconto: Number(desconto) || 0
       });
+      setUltimaVenda(data);
       showSnackbar('Venda realizada com sucesso!', 'success');
       setCarrinho([]);
       setDesconto(0);
       setFormaPagamento('DINHEIRO');
     } catch (err) {
-      showSnackbar('Erro ao finalizar venda: ' + (err.response?.data?.error || 'Erro inesperado'), 'error');
+      showSnackbar('Erro: ' + (err.response?.data?.error || 'Erro inesperado'), 'error');
     }
   };
+
+  const handleImprimirRecibo = () => {
+    if (!reciboRef.current) return;
+
+    const janela = window.open('', '_blank', 'width=400,height=600');
+
+    janela.document.write(`
+    <html>
+      <head>
+        <title>Recibo Venda</title>
+        <style>
+          @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { margin: 0; padding: 10px; }
+          }
+          body { 
+            font-family: 'monospace'; 
+            width: 300px; 
+            margin: 0; 
+            padding: 10px;
+            font-size: 12px;
+          }
+          .divider { border-top: 1px dashed #000; margin: 10px 0; }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .flex-space { display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        ${reciboRef.current.innerHTML}
+        <script>
+          window.onload = function() { 
+            window.print(); 
+            // Adicionamos um pequeno delay para fechar, ou comentamos para teste
+            setTimeout(() => { window.close(); }, 500);
+          }
+        </script>
+      </body>
+    </html>
+  `);
+    janela.document.close();
+  };
+
+  const handleExportarPDF = async () => {
+    if (!reciboRef.current) return;
+    const element = reciboRef.current;
+
+    const canvas = await html2canvas(element, { scale: 3 });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 150]
+    });
+
+    pdf.addImage(imgData, 'PNG', 5, 5, 70, 0);
+    pdf.save(`recibo-venda-${ultimaVenda?.id || 'venda'}.pdf`);
+  };
+
 
   const produtosFiltrados = produtos.filter(p =>
     p.nome.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const subtotal = calcularSubtotal();
-  const total = calcularTotal();
-
   if (!caixaId) {
     return (
-      <Box>
+      <Box p={3}>
         <Typography variant="h4" gutterBottom>PDV - Ponto de Venda</Typography>
-        <Card sx={{ backgroundColor: '#fff3cd' }}>
-          <CardContent>
-            <Typography color="error">
-              ⚠️ Nenhum caixa aberto. Vá até a aba "Caixa" e abra um caixa antes de realizar vendas.
-            </Typography>
-          </CardContent>
+        <Card sx={{ backgroundColor: '#fff3cd', p: 2 }}>
+          <Typography color="error" variant="h6">
+            ⚠️ Nenhum caixa aberto para este usuário.
+          </Typography>
+          <Typography>Vá até a aba "Caixa" e realize a abertura antes de vender.</Typography>
         </Card>
-        <Snackbar open={open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-          <Alert onClose={closeSnackbar} severity={severity} sx={{ width: '100%' }}>
-            {message}
-          </Alert>
-        </Snackbar>
-    </Box>
+      </Box>
     );
   }
 
   return (
-    <Box>
+    <Box p={2}>
       <Typography variant="h4" gutterBottom>PDV - Ponto de Venda</Typography>
+
       <Grid container spacing={3}>
+        {/* Lado Esquerdo: Busca e Produtos */}
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Buscar produto"
+            label="Buscar produto..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, mb: 1, gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 2 }}>
             <TextField
               label="Qtd"
               type="number"
@@ -167,108 +220,130 @@ export default function PDV() {
               sx={{ width: 100 }}
               inputProps={{ min: 1 }}
             />
-            <Typography variant="body2" color="text.secondary">
-              Clique no produto para adicionar ao carrinho
-            </Typography>
           </Box>
 
-          <List sx={{ maxHeight: 400, overflow: 'auto', mt: 1 }}>
+          <List sx={{ maxHeight: 500, overflow: 'auto', mt: 2, border: '1px solid #ddd', borderRadius: 1 }}>
             {produtosFiltrados.map(p => (
               <ListItem key={p.id} button onClick={() => adicionarItem(p)}>
                 <ListItemText
                   primary={p.nome}
-                  secondary={`R$ ${Number(p.precoVenda).toFixed(2)}`}
+                  secondary={`Estoque: ${p.quantidadeEstoque ?? p.quantidadeInicial ?? 0} | R$ ${Number(p.precoVenda).toFixed(2)}`}
                 />
               </ListItem>
             ))}
-            {produtosFiltrados.length === 0 && (
-              <ListItem>
-                <ListItemText primary="Nenhum produto encontrado." />
-              </ListItem>
-            )}
           </List>
         </Grid>
 
+        {/* Lado Direito: Carrinho e Finalização */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Carrinho</Typography>
-            <List>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="h6" gutterBottom>Carrinho</Typography>
+            <List sx={{ maxHeight: 300, overflow: 'auto' }}>
               {carrinho.map(item => (
-                <ListItem
-                  key={item.produto.id}
+                <ListItem key={item.produto.id} divider
                   secondaryAction={
-                    <IconButton onClick={() => removerItem(item.produto.id)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <IconButton onClick={() => removerItem(item.produto.id)}><DeleteIcon /></IconButton>
                   }
                 >
                   <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField
-                          type="number"
-                          value={item.quantidade}
-                          onChange={(e) =>
-                            alterarQuantidadeItem(
-                              item.produto.id,
-                              Number(e.target.value)
-                            )
-                          }
-                          sx={{ width: 70 }}
-                          inputProps={{ min: 1 }}
-                          size="small"
-                        />
-                        <Typography>{item.produto.nome}</Typography>
-                      </Box>
-                    }
-                    secondary={`R$ ${(item.produto.precoVenda * item.quantidade).toFixed(2)}`}
+                    primary={`${item.quantidade}x ${item.produto.nome}`}
+                    secondary={`Subtotal: R$ ${(item.produto.precoVenda * item.quantidade).toFixed(2)}`}
                   />
                 </ListItem>
               ))}
             </List>
 
             <Box sx={{ mt: 2 }}>
-              <Typography variant="body1">Subtotal: R$ {subtotal.toFixed(2)}</Typography>
+              <Typography>Subtotal: R$ {subtotal.toFixed(2)}</Typography>
               <TextField
                 label="Desconto (R$)"
                 type="number"
+                fullWidth
+                size="small"
                 value={desconto}
                 onChange={(e) => setDesconto(e.target.value)}
-                fullWidth
-                sx={{ mt: 1 }}
+                sx={{ my: 1 }}
               />
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Forma de Pagamento</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel>Pagamento</InputLabel>
                 <Select
-                  label="Forma de Pagamento"
                   value={formaPagamento}
+                  label="Pagamento"
                   onChange={(e) => setFormaPagamento(e.target.value)}
                 >
                   <MenuItem value="DINHEIRO">Dinheiro</MenuItem>
-                  <MenuItem value="CREDITO">Crédito</MenuItem>
-                  <MenuItem value="DEBITO">Débito</MenuItem>
+                  <MenuItem value="CREDITO">Cartão de Crédito</MenuItem>
+                  <MenuItem value="DEBITO">Cartão de Débito</MenuItem>
                   <MenuItem value="PIX">PIX</MenuItem>
                 </Select>
               </FormControl>
-
-              <Typography variant="h5" sx={{ mt: 2, fontWeight: 'bold' }}>
+              <Typography variant="h5" sx={{ mt: 2, fontWeight: 'bold', color: 'primary.main' }}>
                 Total: R$ {total.toFixed(2)}
               </Typography>
-
               <Button
                 fullWidth
                 variant="contained"
-                color="primary"
+                size="large"
                 sx={{ mt: 2 }}
                 onClick={finalizarVenda}
                 disabled={carrinho.length === 0}
               >
-                Finalizar Venda
+                Finalizar Venda (F10)
               </Button>
             </Box>
           </Paper>
+
+          {/* Recibo da Última Venda */}
+          {ultimaVenda && (
+            <Card variant="outlined" sx={{ p: 2, bgcolor: '#f9f9f9' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Última Venda Realizada:</Typography>
+
+              <Box
+                ref={reciboRef}
+                sx={{
+                  p: 2,
+                  bgcolor: 'white',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                  maxWidth: '300px',
+                  margin: '0 auto',
+                  border: '1px solid #eee'
+                }}
+              >
+                <Typography align="center" sx={{ fontWeight: 'bold' }}>COMPROVANTE DE VENDA</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Typography>ID: {ultimaVenda.id}</Typography>
+                <Typography>Data: {new Date(ultimaVenda.dataVenda).toLocaleString()}</Typography>
+                <Typography>Atendente: {user?.nome}</Typography>
+                <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+
+                {ultimaVenda.itens?.map((it, index) => (
+                  <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption">{it.quantidade}x {it.nomeProduto}</Typography>
+                    <Typography variant="caption">R$ {(it.quantidade * it.precoUnitario).toFixed(2)}</Typography>
+                  </Box>
+                ))}
+                <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                  <Typography>TOTAL</Typography>
+                  <Typography>R$ {Number(ultimaVenda.valorFinal).toFixed(2)}</Typography>
+                </Box>
+                <Typography variant="caption">Forma: {ultimaVenda.formaPagamento}</Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <Button variant="outlined" fullWidth onClick={handleImprimirRecibo}>Imprimir</Button>
+                <Button variant="outlined" fullWidth onClick={handleExportarPDF}>PDF</Button>
+                <Button color="error" onClick={() => setUltimaVenda(null)}>Fechar</Button>
+              </Box>
+            </Card>
+          )}
         </Grid>
       </Grid>
+
+      <Snackbar open={open} autoHideDuration={3000} onClose={closeSnackbar}>
+        <Alert severity={severity} onClose={closeSnackbar}>{message}</Alert>
+      </Snackbar>
     </Box>
   );
 }

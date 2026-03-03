@@ -1,5 +1,5 @@
-// src/components/Relatorios.js - MELHORADO
 import React, { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -31,6 +31,7 @@ export default function Relatorios() {
   const [dataFim, setDataFim] = useState('');
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState('');
   const [loading, setLoading] = useState(false);
+  const [topProdutos, setTopProdutos] = useState([]);
 
   useEffect(() => {
     carregarDados();
@@ -44,13 +45,17 @@ export default function Relatorios() {
       if (dataFi) params.append('dataFim', dataFi);
       if (forma) params.append('formaPagamento', forma);
 
-      // Carrega resumo
-      const { data: resumoData } = await api.get(`/relatorios/resumo?${params.toString()}`);
+      const queryString = params.toString();
+
+      const { data: resumoData } = await api.get(`/relatorios/resumo?${queryString}`);
       setResumo(resumoData);
 
-      // Carrega lista de vendas
-      const { data: vendasData } = await api.get(`/vendas?${params.toString()}`);
+      const { data: vendasData } = await api.get(`/vendas?${queryString}`);
       setVendas(vendasData);
+
+      // Usando queryString aqui também
+      const { data: topData } = await api.get(`/relatorios/top-produtos?${queryString}&limite=5`);
+      setTopProdutos(topData);
     } catch (err) {
       console.error('Erro ao carregar relatórios:', err);
     }
@@ -67,6 +72,8 @@ export default function Relatorios() {
     setFiltroFormaPagamento('');
     carregarDados();
   };
+
+
 
   if (loading && !resumo) {
     return <Typography>Carregando...</Typography>;
@@ -101,13 +108,15 @@ export default function Relatorios() {
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Forma de Pagamento</InputLabel>
-              <Select
-                label="Forma de Pagamento"
-                value={filtroFormaPagamento}
-                onChange={(e) => setFiltroFormaPagamento(e.target.value)}
-              >
+            <FormControl fullWidth sx={{ minWidth: 200 }}>
+              <InputLabel id="forma-pagamento-label">Forma de Pagamento</InputLabel>
+                <Select
+                  labelId="forma-pagamento-label"
+                  id="forma-pagamento-select"
+                  value={filtroFormaPagamento}
+                  label="Forma de Pagamento"
+                  onChange={(e) => setFiltroFormaPagamento(e.target.value)}
+                >
                 <MenuItem value="">Todas</MenuItem>
                 <MenuItem value="DINHEIRO">Dinheiro</MenuItem>
                 <MenuItem value="CREDITO">Crédito</MenuItem>
@@ -137,7 +146,7 @@ export default function Relatorios() {
                   Vendas Hoje
                 </Typography>
                 <Typography variant="h4">
-                  R$ {Number(resumo.totalVendasDia || 0).toFixed(2)}
+                  R$ {Number(resumo?.totalVendasDia || 0).toFixed(2)}
                 </Typography>
               </CardContent>
             </Card>
@@ -201,10 +210,12 @@ export default function Relatorios() {
                 <TableRow key={venda.id}>
                   <TableCell>{venda.id}</TableCell>
                   <TableCell>
-                    {new Date(venda.dataCriacao).toLocaleString('pt-BR')}
+                    {venda.dataVenda ? new Date(venda.dataVenda).toLocaleString('pt-BR') : '---'}
                   </TableCell>
-                  <TableCell>{venda.formaPagamento}</TableCell>
-                  <TableCell>R$ {Number(venda.total).toFixed(2)}</TableCell>
+                  <TableCell>
+                    {venda.formaPagamento || "Não informado"}
+                  </TableCell>
+                  <TableCell>R$ {Number(venda.valorFinal || 0).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
               {vendas.length === 0 && (
@@ -218,6 +229,26 @@ export default function Relatorios() {
           </Table>
         </TableContainer>
       </Paper>
+
+      {/* Nova Seção: Gráfico de Top Produtos */}
+      {topProdutos.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Produtos Mais Vendidos</Typography>
+            <Box sx={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topProdutos}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nome" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="quantidadeVendida" fill="#1976d2" name="Quantidade" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }

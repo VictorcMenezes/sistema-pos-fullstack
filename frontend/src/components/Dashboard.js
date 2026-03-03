@@ -18,6 +18,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import LogoutIcon from '@mui/icons-material/Logout';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 
 import PDV from './PDV';
 import Relatorios from './Relatorios';
@@ -25,12 +26,14 @@ import CaixaManager from './CaixaManager';
 import Produtos from './Produtos';
 import Fornecedores from './Fornecedores';
 import { useAuth } from '../context/AuthContext';
+import ResumoDashboard from './ResumoDashboard';
+import DashboardHome from './DashboardHome';
 
 const drawerWidth = 240;
 
 export default function Dashboard() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState('pdv');
+  const [abaAtiva, setAbaAtiva] = useState('home');
   const [horaAtual, setHoraAtual] = useState(new Date());
   const { logout, user } = useAuth();
 
@@ -62,6 +65,10 @@ export default function Dashboard() {
         return <Fornecedores />;
       case 'relatorios':
         return <Relatorios />;
+      case 'resumo':
+        return <ResumoDashboard />;
+      case 'home':
+        return <DashboardHome />;
       default:
         return <PDV />;
     }
@@ -76,6 +83,11 @@ export default function Dashboard() {
       </Toolbar>
       <Divider />
       <List>
+        <ListItemButton selected={abaAtiva === 'home'} onClick={() => handleChangeAba('home')}>
+          <DashboardIcon sx={{ mr: 1 }} />
+          <ListItemText primary="Dashboard" />
+        </ListItemButton>
+
         <ListItemButton selected={abaAtiva === 'pdv'} onClick={() => handleChangeAba('pdv')}>
           <PointOfSaleIcon sx={{ mr: 1 }} />
           <ListItemText primary="PDV" />
@@ -101,6 +113,11 @@ export default function Dashboard() {
           <ListItemText primary="Relatórios" />
         </ListItemButton>
       </List>
+
+        <ListItemButton selected={abaAtiva === 'resumo'} onClick={() => handleChangeAba('resumo')}>
+          <AssessmentIcon sx={{ mr: 1 }} />
+          <ListItemText primary="Visão Geral" />
+        </ListItemButton>
 
       <Divider />
       <List>
@@ -131,7 +148,12 @@ export default function Dashboard() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Sistema POS - {abaAtiva.toUpperCase()}
+            Sistema POS - {
+              abaAtiva === 'home' ? 'Dashboard' : 
+              abaAtiva === 'pdv' ? 'PDV' : 
+              abaAtiva === 'caixa' ? 'Caixa' : 
+              abaAtiva.toUpperCase()
+            }
           </Typography>
           <Typography variant="body2" sx={{ mr: 2 }}>
             {user?.nome}
