@@ -2,6 +2,7 @@ package com.seuusuario.pos.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record VendaResponse(
     Long id,
@@ -9,5 +10,6 @@ public record VendaResponse(
     BigDecimal valorTotal,
     BigDecimal valorFinal,
     String formaPagamento,
-    Instant dataVenda
+    Instant dataVenda,
+    List<ItemVendaDTO> itens
 ) {}

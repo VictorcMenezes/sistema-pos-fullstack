@@ -55,26 +55,25 @@ public class ProdutoService {
     }
 
     public ProdutoDTO toDTO(Produto p){
-
-        Integer quantidade = 0;
-        if (p.getId() != null) {
-            quantidade = estoqueRepo.findByProdutoId(p.getId())
+    Integer quantidade = 0;
+    if (p.getId() != null) {
+        
+        quantidade = estoqueRepo.findByProdutoId(p.getId())
                 .map(Estoque::getQuantidade)
                 .orElse(0);
-        }
-
-        return new ProdutoDTO(
-                p.getId(),
-                p.getNome(),
-                p.getCodigoBarras(),
-                (p.getFornecedor() != null) ? p.getFornecedor().getId() : null,
-                p.getPrecoCompra(),
-                p.getPrecoVenda(),
-                p.getAtivo(),
-                quantidade
-                
-        );
     }
+
+    return new ProdutoDTO(
+            p.getId(),
+            p.getNome(),
+            p.getCodigoBarras(),
+            (p.getFornecedor() != null) ? p.getFornecedor().getId() : null,
+            p.getPrecoCompra(),
+            p.getPrecoVenda(),
+            p.getAtivo(),
+            quantidade
+    );
+}
     
     public ProdutoDTO buscarPorId(Long id){
         Produto produto = produtoRepo.findById(id)

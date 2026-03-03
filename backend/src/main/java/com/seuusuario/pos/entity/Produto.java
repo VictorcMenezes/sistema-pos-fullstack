@@ -44,6 +44,9 @@ public class Produto {
     private BigDecimal precoVenda;
 
     @Column(nullable = false)
+    private Integer quantidadeEstoque = 0;
+
+    @Column(nullable = false)
     private Boolean ativo = true;
 }
 

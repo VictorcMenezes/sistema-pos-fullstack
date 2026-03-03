@@ -1,9 +1,8 @@
 package com.seuusuario.pos.controller;
 
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,8 +10,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.seuusuario.pos.dto.RelatorioFormaPagamento;
+import com.seuusuario.pos.dto.ResumoDiaDTO;
 import com.seuusuario.pos.dto.ResumoVendas;
+import com.seuusuario.pos.dto.TopProdutoDTO;
 import com.seuusuario.pos.service.RelatorioService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,15 +26,33 @@ public class RelatorioController {
 
     @GetMapping("/resumo")
     @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
-    public ResponseEntity<ResumoVendas> resumo() {
-        return ResponseEntity.ok(relatorioService.resumoVendas());
+    public ResponseEntity<ResumoVendas> resumo(
+            @RequestParam(required = false) String dataInicio,
+            @RequestParam(required = false) String dataFim,
+            @RequestParam(required = false) String formaPagamento) {
+
+        LocalDate inicio = (dataInicio != null && !dataInicio.isEmpty()) ? LocalDate.parse(dataInicio) : null;
+        LocalDate fim = (dataFim != null && !dataFim.isEmpty()) ? LocalDate.parse(dataFim) : null;
+
+        return ResponseEntity.ok(relatorioService.resumoVendas(inicio, fim, formaPagamento));
     }
 
-    @GetMapping("/vendas-por-forma-pagamento")
+    @GetMapping("/top-produtos")
     @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
-    public ResponseEntity<List<RelatorioFormaPagamento>> vendasPorFormaPagamento(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant inicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fim) {
-        return ResponseEntity.ok(relatorioService.vendasPorFormaPagamento(inicio, fim));
+    public ResponseEntity<List<TopProdutoDTO>> getTopProdutos(
+            @RequestParam(required = false) String dataInicio,
+            @RequestParam(required = false) String dataFim,
+            @RequestParam(defaultValue = "5") Integer limite) {
+
+        LocalDate inicio = (dataInicio != null && !dataInicio.isEmpty()) ? LocalDate.parse(dataInicio) : null;
+        LocalDate fim = (dataFim != null && !dataFim.isEmpty()) ? LocalDate.parse(dataFim) : null;
+
+        return ResponseEntity.ok(relatorioService.getTopProdutos(inicio, fim, limite));
+    }
+
+    @GetMapping("/resumo-dia")
+    @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")
+    public ResponseEntity<ResumoDiaDTO> resumoDia() {
+        return ResponseEntity.ok(relatorioService.obterResumoDiaCompleto());
     }
 }
