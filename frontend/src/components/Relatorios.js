@@ -146,7 +146,7 @@ export default function Relatorios() {
                   Vendas Hoje
                 </Typography>
                 <Typography variant="h4">
-                  R$ {Number(resumo?.totalVendasDia || 0).toFixed(2)}
+                  R$ {Number(resumo?.totalDia || 0).toFixed(2)}
                 </Typography>
               </CardContent>
             </Card>
@@ -159,7 +159,7 @@ export default function Relatorios() {
                   Vendas Semana
                 </Typography>
                 <Typography variant="h4">
-                  R$ {Number(resumo.totalVendasSemana || 0).toFixed(2)}
+                  R$ {Number(resumo?.totalSemana || 0).toFixed(2)}
                 </Typography>
               </CardContent>
             </Card>
@@ -172,7 +172,7 @@ export default function Relatorios() {
                   Vendas Mês
                 </Typography>
                 <Typography variant="h4">
-                  R$ {Number(resumo.totalVendasMes || 0).toFixed(2)}
+                  R$ {Number(resumo?.totalMes || 0).toFixed(2)}
                 </Typography>
               </CardContent>
             </Card>

@@ -92,19 +92,31 @@ export default function DashboardHome() {
           </TableHead>
           <TableBody>
             {resumo.ultimasVendas && resumo.ultimasVendas.length > 0 ? (
-              resumo.ultimasVendas.map((venda) => (
-                <TableRow key={venda.id}>
-                  <TableCell>#{venda.id}</TableCell>
-                  <TableCell>
-                    {/* Exibe apenas a hora para ficar mais limpo */}
-                    {new Date(venda.dataCriacao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </TableCell>
-                  <TableCell>{venda.formaPagamento}</TableCell>
-                  <TableCell align="right">
-                    R$ {Number(venda.total || 0).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))
+              resumo.ultimasVendas.map((venda) => {
+                const formatarHora = (dataRaw) => {
+                  if (!dataRaw) return '--:--';
+                  try {
+                    const data = new Date(dataRaw);
+                    return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                  } catch (e) {
+                    return '--:--';
+                  }
+                };
+
+                return (
+                  <TableRow key={venda.id}>
+                    <TableCell>#{venda.id}</TableCell>
+                    <TableCell>
+                      {formatarHora(venda.dataCriacao)}
+                    </TableCell>
+                    <TableCell>{venda.formaPagamento || '---'}</TableCell>
+                    <TableCell align="right">
+
+                      R$ {Number(venda.total || 0).toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={4} align="center" sx={{ py: 3 }}>

@@ -24,9 +24,7 @@ export default function CaixaManager() {
   }, []);
 
   const carregarCaixa = async () => {
-  // Se o id for uma string que parece email ou estiver vazio, não faz a busca
-  if (!user?.id || typeof user.id === 'string' && user.id.includes('@')) {
-    console.error("ID de usuário inválido encontrado:", user?.id);
+  if (!user?.id || (typeof user.id === 'string' && user.id.includes('@'))) {
     setLoading(false);
     return;
   }
@@ -36,7 +34,9 @@ export default function CaixaManager() {
     const { data } = await api.get(`/caixas/aberto/${user.id}`);
     setCaixaAtual(data);
   } catch (err) {
-    console.error("Erro ao carregar caixa:", err);
+    if (err.response?.status !== 404) {
+      console.error("Erro ao carregar caixa:", err);
+    }
     setCaixaAtual(null);
   }
   setLoading(false);
